@@ -7,7 +7,7 @@
  */
 
 export interface Env {
-  BPB_KV: KVNamespace;
+  BPB_KV?: KVNamespace;
 }
 
 // In-memory fallback when KV is not available (for testing)

@@ -2,14 +2,12 @@ name = "bpb-action-coordinator"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
-# KV Namespace for storing proxy configs
-# First create one with: wrangler kv:namespace create "BPB_KV"
-# Then update this id with the one from the output
-[[kv_namespaces]]
-binding = "BPB_KV"
-id = ""
-
-# Alternatively, use in-memory fallback by commenting out the above
-# and the worker will use in-memory storage (not persistent across restarts)
+# No KV needed - worker uses in-memory storage by default
+# If you want persistent storage, create a KV namespace:
+#   wrangler kv:namespace create "BPB_KV"
+# Then uncomment below and paste the real id:
+# [[kv_namespaces]]
+# binding = "BPB_KV"
+# id = "paste-real-id-here"
 
 # Enable secrets (set these with: wrangler secret put AUTH_TOKEN)
