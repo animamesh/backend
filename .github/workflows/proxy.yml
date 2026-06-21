@@ -25,6 +25,7 @@ env:
   COORDINATOR_URL: ${{ secrets.COORDINATOR_URL }}
   AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
   NETWORK_ID: ${{ secrets.NETWORK_ID || 'bpb-default' }}
+  BOOTSTRAP_PEERS: ${{ secrets.BOOTSTRAP_PEERS || '' }}
 
 jobs:
   proxy:
@@ -309,6 +310,27 @@ jobs:
           echo ""
           echo "⏱️  This runner will stay alive for 45 minutes max"
           echo "═══════════════════════════════════════════════"
+
+      # --- Step 7.5: Start DHT Mesh Node (best-effort, non-blocking) ---
+      - name: Start DHT Mesh Node
+        if: env.TUNNEL_HOST != ''
+        continue-on-error: true
+        env:
+          MESH_PORT: 4001
+          NETWORK_ID: ${{ secrets.NETWORK_ID || 'bpb-default' }}
+          PROXY_PROTOCOL: ${{ github.event.inputs.protocol }}
+          PROXY_HOST: ${{ env.TUNNEL_HOST }}
+          PROXY_PORT: ${{ env.TUNNEL_PORT }}
+          VLESS_UUID: ${{ steps.creds.outputs.uuid }}
+          HY2_PASSWORD: ${{ steps.creds.outputs.password }}
+          TTL_MINUTES: 45
+          BOOTSTRAP_PEERS: ${{ secrets.BOOTSTRAP_PEERS || '' }}
+          TUNNEL_HOST: ${{ env.TUNNEL_HOST }}
+          TUNNEL_PORT: ${{ env.TUNNEL_PORT }}
+        run: |
+          echo "🌐 Starting libp2p DHT mesh layer..."
+          cd node && npm install --silent 2>&1 && npx tsx src/index.ts &
+          echo "🧬 DHT mesh node launched in background (PID $!)"
 
       # --- Step 8: Keep alive with heartbeat ---
       - name: Keep runner alive with heartbeat
