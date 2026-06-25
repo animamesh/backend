@@ -473,7 +473,7 @@ cmd_wizard() {
     section "Deploying..."
 
     local protocols=("hysteria2" "vless")
-    local tunnels=("n2n" "bore" "pinggy" "trycloudflare" "direct")
+    local tunnels=("n2n" "pinggy" "trycloudflare" "direct")
 
     local protocol
     protocol=$(prompt_choice "Choose protocol:" "${protocols[@]}")
