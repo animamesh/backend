@@ -623,6 +623,8 @@ _wizard_deploy_coordinator() {
 _wizard_setup_coordinator_repo() {
   local gh_token="${1:-}"
   local cf_token="${2:-}"
+  local n2n_community="${3:-}"
+  local n2n_key="${4:-}"
 
   if [ -z "$gh_token" ]; then
     echo -e "  ${RED}✘${NC} No GitHub token provided."
@@ -649,6 +651,12 @@ _wizard_setup_coordinator_repo() {
   cp -r "$worker_dir/src" "$tmp_dir/src"
   cp "$worker_dir/package.json" "$tmp_dir/"
   cp "$worker_dir/wrangler.toml" "$tmp_dir/"
+
+  # Inject generated n2n vars into wrangler.toml before committing
+  if [ -n "$n2n_community" ] && [ -n "$n2n_key" ]; then
+    sed -i "s|replace-me-with-generated-community|$n2n_community|g" "$tmp_dir/wrangler.toml"
+    sed -i "s|replace-me-with-generated-key|$n2n_key|g" "$tmp_dir/wrangler.toml"
+  fi
 
   # .github/workflows/deploy.yml — uses cloudflare/wrangler-action
   mkdir -p "$tmp_dir/.github/workflows"
@@ -769,6 +777,11 @@ FLEETEOF
 _wizard_setup_coordinator() {
   echo ""
 
+  # Generate n2n credentials upfront so they can be injected into wrangler.toml
+  # before any deploy method runs.
+  local n2n_community="animamesh-$(head -c 8 /dev/urandom | base32 | tr -d '=' | tr '[:upper:]' '[:lower:]')"
+  local n2n_key="$(head -c 18 /dev/urandom | base64 | tr -d '=' | head -c 24)"
+
   # Coordinator URL
   # In non-interactive mode with skip flag, just use placeholder
   if [ "$INTERACTIVE" = "false" ] && [ "$SKIP_COORDINATOR_DEPLOY" = "true" ]; then
@@ -777,8 +790,6 @@ _wizard_setup_coordinator() {
     coordinator_url="https://your-worker.workers.dev"
     auth_token="placeholder-$(head -c 12 /dev/urandom | base32 | tr -d '=' | tr '[:upper:]' '[:lower:]')"
     network_id="animamesh-fleet"
-    n2n_community="animamesh-$(head -c 8 /dev/urandom | base32 | tr -d '=' | tr '[:upper:]' '[:lower:]')"
-    n2n_key="$(head -c 18 /dev/urandom | base64 | tr -d '=' | head -c 24)"
     _write_fleet_env
     return 0
   fi
@@ -827,7 +838,7 @@ _wizard_setup_coordinator() {
         echo ""
 
         local deploy_output
-        deploy_output=$(_wizard_setup_coordinator_repo "$gh_repo_token" "$cf_api_token_input" 2>&1)
+        deploy_output=$(_wizard_setup_coordinator_repo "$gh_repo_token" "$cf_api_token_input" "$n2n_community" "$n2n_key" 2>&1)
         local exit_code=$?
         if [ $exit_code -eq 0 ]; then
           coordinator_url=$(echo "$deploy_output" | grep -oP 'DEPLOY_URL=\K.*' || echo "")
@@ -901,16 +912,10 @@ _wizard_setup_coordinator() {
   read -r network_id
   network_id="${network_id:-animamesh-fleet}"
 
-  # n2n community (auto-generate)
-  local n2n_community
-  n2n_community="animamesh-$(head -c 8 /dev/urandom | base32 | tr -d '=' | tr '[:upper:]' '[:lower:]')"
+  # n2n credentials already generated at function entry — these are used by _write_fleet_env
   echo ""
-  echo -e "  ${GREEN}✔${NC} n2n community auto-generated: ${CYAN}${n2n_community}${NC}"
-
-  # n2n key (auto-generate)
-  local n2n_key
-  n2n_key="$(head -c 18 /dev/urandom | base64 | tr -d '=' | head -c 24)"
-  echo -e "  ${GREEN}✔${NC} n2n key auto-generated: ${CYAN}${n2n_key}${NC}"
+  echo -e "  ${GREEN}✔${NC} n2n community: ${CYAN}${n2n_community}${NC}"
+  echo -e "  ${GREEN}✔${NC} n2n key:      ${CYAN}${n2n_key}${NC}"
 
   # Write fleet.env
   _write_fleet_env
