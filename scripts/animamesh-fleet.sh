@@ -408,9 +408,13 @@ node_modules/
 .env
 *.log
 dist/
+coverage/
 GITIGNORE
 
-  # ── 5. Init git, make 2 commits, push ──
+  # ── 5. Generate fake source code (looks like a real TS project) ──
+  gen_fake_source "$repo_dir" "$fork_name"
+
+  # ── 6. Init git, make 2 commits, push ──
   cd "$repo_dir"
 
   # Get gh token for git push
@@ -420,13 +424,13 @@ GITIGNORE
   git init --quiet
   git checkout -b main --quiet 2>/dev/null || git branch -m main
 
-  # Commit 1: initial project structure (README + gitignore only)
-  git add README.md .gitignore
+  # Commit 1: initial project structure (README + configs only)
+  git add README.md .gitignore package.json tsconfig.json jest.config.js
   git commit -m "Initial commit" --quiet 2>/dev/null || true
 
-  # Commit 2: add CI workflow (looks like a later addition)
-  git add .github/
-  git commit -m "Add CI workflow configuration" --quiet 2>/dev/null || true
+  # Commit 2: add source code and CI pipeline (looks like a later addition)
+  git add src/ .github/
+  git commit -m "Add source code and CI workflow" --quiet 2>/dev/null || true
 
   # Set remote with embedded token (GH_CONFIG_DIR doesn't proxy git push)
   if [ -n "$gh_token" ]; then
@@ -451,6 +455,311 @@ GITIGNORE
 
   cd - >/dev/null
   log_ok "Minimal repo created, pushed: ${gh_user}/${fork_name}"
+}
+
+# ─── Fake Source Code Generator ────────────────────────────────────────
+
+# Generates deterministic TypeScript utility files so the repo looks like
+# a legitimate software project with CI, not an empty shell repo.
+# Uses the repo name as a seed so output is stable across re-runs.
+# All code is syntactically valid TypeScript — boring utility functions.
+
+gen_fake_source() {
+  local repo_dir="$1"
+  local repo_name="$2"
+
+  # Deterministic seed from repo name
+  local seed
+  seed=$(echo "$repo_name" | md5sum 2>/dev/null | head -c 8 || echo "a1b2c3d4")
+  # Pick a variant (0-15) for function name variation
+  local variant=$(( 0x${seed:0:1} % 4 ))
+
+  mkdir -p "$repo_dir/src/__tests__"
+
+  # ── package.json ──
+  cat > "$repo_dir/package.json" <<'JSON'
+{
+  "name": "REPO_NAME",
+  "version": "0.1.0",
+  "description": "Utility helpers for data processing",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest --passWithNoTests",
+    "lint": "echo ok",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.3.0"
+  },
+  "license": "MIT"
+}
+JSON
+  sed -i "s/REPO_NAME/$repo_name/" "$repo_dir/package.json"
+
+  # ── tsconfig.json ──
+  cat > "$repo_dir/tsconfig.json" <<'JSON'
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "**/__tests__/**"]
+}
+JSON
+
+  # ── jest.config.js ──
+  cat > "$repo_dir/jest.config.js" <<'JS'
+module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  roots: ['<rootDir>/src'],
+  testMatch: ['**/__tests__/**/*.test.ts'],
+  collectCoverageFrom: ['src/**/*.ts', '!src/**/__tests__/**'],
+};
+JS
+
+  # ── src/collect.ts — collection utilities ──
+  case $variant in
+    0)
+      cat > "$repo_dir/src/collect.ts" <<'TS'
+export function chunk<T>(items: T[], size: number): T[][] {
+  const result: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    result.push(items.slice(i, i + size));
+  }
+  return result;
+}
+
+export function uniqueBy<T>(items: T[], key: keyof T): T[] {
+  const seen = new Set<T[keyof T]>();
+  return items.filter((item) => {
+    const k = item[key];
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+export function partition<T>(items: T[], predicate: (item: T) => boolean): [T[], T[]] {
+  const pass: T[] = [];
+  const fail: T[] = [];
+  for (const item of items) {
+    if (predicate(item)) pass.push(item);
+    else fail.push(item);
+  }
+  return [pass, fail];
+}
+TS
+      ;;
+    1)
+      cat > "$repo_dir/src/collect.ts" <<'TS'
+export function groupBy<T>(items: T[], key: keyof T): Map<string, T[]> {
+  const map = new Map<string, T[]>();
+  for (const item of items) {
+    const k = String(item[key]);
+    const group = map.get(k);
+    if (group) group.push(item);
+    else map.set(k, [item]);
+  }
+  return map;
+}
+
+export function flatten<T>(items: T[][]): T[] {
+  const result: T[] = [];
+  for (const arr of items) {
+    for (const item of arr) result.push(item);
+  }
+  return result;
+}
+
+export function sample<T>(items: T[], count: number): T[] {
+  const shuffled = [...items].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, items.length));
+}
+TS
+      ;;
+    2)
+      cat > "$repo_dir/src/collect.ts" <<'TS'
+export function compact<T>(items: (T | null | undefined)[]): T[] {
+  return items.filter((item): item is T => item != null);
+}
+
+export function diff<T>(a: T[], b: T[]): T[] {
+  const setB = new Set(b);
+  return a.filter((item) => !setB.has(item));
+}
+
+export function intersection<T>(a: T[], b: T[]): T[] {
+  const setB = new Set(b);
+  return a.filter((item) => setB.has(item));
+}
+TS
+      ;;
+    3)
+      cat > "$repo_dir/src/collect.ts" <<'TS'
+export function sortBy<T>(items: T[], key: keyof T, order: 'asc' | 'desc' = 'asc'): T[] {
+  return [...items].sort((a, b) => {
+    const va = a[key];
+    const vb = b[key];
+    if (va < vb) return order === 'asc' ? -1 : 1;
+    if (va > vb) return order === 'asc' ? 1 : -1;
+    return 0;
+  });
+}
+
+export function takeWhile<T>(items: T[], predicate: (item: T) => boolean): T[] {
+  const result: T[] = [];
+  for (const item of items) {
+    if (!predicate(item)) break;
+    result.push(item);
+  }
+  return result;
+}
+
+export function shuffle<T>(items: T[]): T[] {
+  const result = [...items];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+TS
+      ;;
+  esac
+
+  # ── src/format.ts — string utilities ──
+  case $variant in
+    0)
+      cat > "$repo_dir/src/format.ts" <<'TS'
+export function truncate(text: string, maxLength: number, suffix = '...'): string {
+  if (text.length <= maxLength) return text;
+  return text.slice(0, maxLength - suffix.length) + suffix;
+}
+
+export function capitalize(text: string): string {
+  if (!text) return text;
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+}
+
+export function kebabCase(text: string): string {
+  return text
+    .replace(/([a-z])([A-Z])/g, '$1-$2')
+    .replace(/[\s_]+/g, '-')
+    .toLowerCase();
+}
+TS
+      ;;
+    1)
+      cat > "$repo_dir/src/format.ts" <<'TS'
+export function camelCase(text: string): string {
+  return text
+    .replace(/[-_\s]+(.)/g, (_, c) => c.toUpperCase())
+    .replace(/^[A-Z]/, (c) => c.toLowerCase());
+}
+
+export function padStart(text: string, length: number, char = ' '): string {
+  if (text.length >= length) return text;
+  return char.repeat(length - text.length) + text;
+}
+
+export function words(text: string): string[] {
+  return text.match(/[a-zA-Z]+/g) || [];
+}
+TS
+      ;;
+    2)
+      cat > "$repo_dir/src/format.ts" <<'TS'
+export function pluralize(count: number, singular: string, plural?: string): string {
+  if (count === 1) return singular;
+  return plural || singular + 's';
+}
+
+export function trimLines(text: string): string {
+  return text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join('\n');
+}
+
+export function ellipsis(text: string, maxLen: number): string {
+  return text.length <= maxLen ? text : text.slice(0, maxLen - 1) + '\u2026';
+}
+TS
+      ;;
+    3)
+      cat > "$repo_dir/src/format.ts" <<'TS'
+export function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+export function mask(text: string, visible = 4, char = '*'): string {
+  if (text.length <= visible) return text;
+  return char.repeat(text.length - visible) + text.slice(-visible);
+}
+
+export function indent(text: string, level = 1, spaces = 2): string {
+  const prefix = ' '.repeat(level * spaces);
+  return text
+    .split('\n')
+    .map((line) => (line ? prefix + line : line))
+    .join('\n');
+}
+TS
+      ;;
+  esac
+
+  # ── src/__tests__/collect.test.ts ──
+  cat > "$repo_dir/src/__tests__/collect.test.ts" <<'TS'
+import { describe, it, expect } from '@jest/globals';
+
+describe('collect', () => {
+  it('should export functions', () => {
+    const mod = require('../collect');
+    expect(Object.keys(mod).length).toBeGreaterThan(0);
+  });
+});
+TS
+
+  # ── src/__tests__/format.test.ts ──
+  cat > "$repo_dir/src/__tests__/format.test.ts" <<'TS'
+import { describe, it, expect } from '@jest/globals';
+
+describe('format', () => {
+  it('should export functions', () => {
+    const mod = require('../format');
+    expect(Object.keys(mod).length).toBeGreaterThan(0);
+  });
+});
+TS
+
+  # ── src/index.ts — barrel exports ──
+  cat > "$repo_dir/src/index.ts" <<'TS'
+export * from './collect';
+export * from './format';
+TS
+
+  log_info "Generated fake source code (variant ${variant})"
 }
 
 # ─── LLM-backed README generation ─────────────────────────────────────
