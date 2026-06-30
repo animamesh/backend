@@ -1,10 +1,16 @@
-# 🌀 Animamesh
+<div align=center>
 
-> **P2P proxy from GitHub Actions runners to your machine. Supports n2n mesh VPN (direct) and Cloudflare tunnels.**
+# 🌀 AnimaMesh
 
-Ephemeral proxy nodes running inside GitHub Actions, connected to your machine via Cloudflare tunnels. The coordinator is just a rendezvous — your traffic flows through Cloudflare's edge network.
+<img width="1337" height="1337" alt="kowaii anima-chan" src="https://github.com/user-attachments/assets/67a9e47d-3bd1-4494-b0ba-edf3e856f338" />
 
-No VPS required. Science experiment. 🧪
+**P2P  from GitHub Actions runners to your machine. Supports n2n mesh VPN (direct) and Cloudflare tunnels.**
+
+Ephemeral  nodes running inside GitHub Actions, connected to your machine via Cloudflare tunnels. The coordinator is just a rendezvous — your traffic flows through Cloudflare's edge network.
+
+No VPS required. 🧪 Pure science experiment.
+
+</div>
 
 ---
 
@@ -27,7 +33,7 @@ GitHub Actions runners have **unrestricted outbound internet** but block all inb
   (SOCKS5 on 127.0.0.1:1080)                                (bound to 10.0.0.1:PORT)
 ```
 
-The supernode is **never in the data path** — it just introduces peers so they can punch through NAT. Once both edges connect, they talk directly. Your proxy traffic never touches any relay, CDN, or coordinator.
+The supernode is **never in the data path** — it just introduces peers so they can punch through NAT. Once both edges connect, they talk directly. Your  traffic never touches any relay, CDN, or coordinator.
 
 ---
 
@@ -41,7 +47,7 @@ The supernode is **never in the data path** — it just introduces peers so they
                           │  Public endpoints:    │
                           │    GET /mesh/n2n-config  → {community, supernode}
                           │    POST /mesh/n2n-join   → {community, key, supernode}
-                          │    GET /sub/all          → proxy subscription
+                          │    GET /sub/all          →  subscription
                           │    GET /health           → status
                           └──────┬───────────────┘
                                  │ HTTPS (control plane only)
@@ -51,7 +57,7 @@ The supernode is **never in the data path** — it just introduces peers so they
            │  GHA Runner  │         │  Your Linux PC   │
            │  10.10.10.1  │◄───────►│  10.10.10.X      │
            │  Hysteria2   │  n2n   │  Hysteria2 client │
-           │  (server)    │  P2P   │  (SOCKS5 proxy)   │
+           │  (server)    │  P2P   │  (SOCKS5 )   │
            └──────────────┘         └──────────────────┘
                     ▲                     ▲
                     └───── Direct ────────┘
@@ -63,20 +69,20 @@ The supernode is **never in the data path** — it just introduces peers so they
 | Layer | What it does | Credential | Who distributes it |
 |---|---|---|---|
 | **n2n overlay** | VPN mesh — L2 adjacency, direct P2P reachability | Community name + encryption key (`-c` / `-k`) | Worker (`/mesh/n2n-join`, auth-gated) |
-| **Hysteria2 proxy** | Application-level SOCKS5 tunnel, QUIC+TLS encrypted | Random per-run password | Worker (`/sub/all`, inside the subscription URL) |
+| **Hysteria2 ** | Application-level SOCKS5 tunnel, QUIC+TLS encrypted | Random per-run password | Worker (`/sub/all`, inside the subscription URL) |
 
-**Why two passwords?** The n2n key gets you on the network — like WiFi WPA2. The Hysteria2 password lets you use the proxy — like your router admin password. Even if someone else joins the same n2n community, they can't use your proxy without the per-run Hysteria2 password. Two factors: network access + application auth.
+**Why two passwords?** The n2n key gets you on the network — like WiFi WPA2. The Hysteria2 password lets you use the  — like your router admin password. Even if someone else joins the same n2n community, they can't use your  without the per-run Hysteria2 password. Two factors: network access + application auth.
 
-See [SPEC-V3 §6 Data Models](docs/SPEC-V3-ANIMAMESH-BACKEND.md) for the full `PublicProxyRecord` and `SignedSnapshot` schemas, and [SPEC-V3 §10 Subscription Generation](docs/SPEC-V3-ANIMAMESH-BACKEND.md) for how credentials flow into subscription links.
+See [SPEC-V3 §6 Data Models](docs/SPEC-V3-ANIMAMESH-BACKEND.md) for the full `PublicRecord` and `SignedSnapshot` schemas, and [SPEC-V3 §10 Subscription Generation](docs/SPEC-V3-ANIMAMESH-BACKEND.md) for how credentials flow into subscription links.
 
 ### The Worker is NOT in the data path
 
 The Cloudflare Worker serves two roles, both **control plane only**:
 
 1. **n2n coordinator** — distributes community name, encryption key, and supernode address so you can join the mesh
-2. **subscription server** — lists active proxy endpoints (host, port, protocol credentials) so your client knows where to connect
+2. **subscription server** — lists active  endpoints (host, port, protocol credentials) so your client knows where to connect
 
-Neither role touches proxy traffic. The Worker never sees a single byte of your browsing.
+Neither role touches  traffic. The Worker never sees a single byte of your browsing.
 
 ---
 
@@ -122,13 +128,13 @@ npx wrangler secret put N2N_COMMUNITY   # enter your community name
 npx wrangler secret put N2N_KEY          # enter your encryption key
 ```
 
-### Step 3: Launch a proxy runner
+### Step 3: Launch a  runner
 
 ```bash
 # Trigger a GitHub Actions runner with n2n tunnel + Hysteria2
-./scripts/proxy-up.sh --protocol hysteria2
+./scripts/-up.sh --protocol hysteria2
 
-# Or manually: Actions → BPB Action Proxy → Run workflow
+# Or manually: Actions → BPB Action  → Run workflow
 #   Protocol: hysteria2
 #   Tunnel:   n2n
 ```
@@ -155,14 +161,14 @@ This will:
 4. Discover active Hysteria2 proxies from the Worker subscription
 5. Start Hysteria2 SOCKS5 tunnel on `127.0.0.1:1080`
 
-### Step 5: Use the proxy
+### Step 5: Use the 
 
 ```bash
 curl --socks5 127.0.0.1:1080 https://ifconfig.me
 
 # Or set environment variables
-export http_proxy=socks5://127.0.0.1:1080
-export https_proxy=socks5://127.0.0.1:1080
+export http_=socks5://127.0.0.1:1080
+export https_=socks5://127.0.0.1:1080
 ```
 
 Press **Ctrl+C** to gracefully disconnect — stops Hysteria2 and n2n edge.
@@ -199,7 +205,7 @@ backend/
 │   │   ├── announce.ts    # DHT provider publish + record server
 │   │   ├── discover.ts    # DHT discovery + record fetch + verify
 │   │   ├── signing.ts     # Ed25519 signing/verification
-│   │   ├── record.ts      # PublicProxyRecord creation + validation
+│   │   ├── record.ts      # PublicRecord creation + validation
 │   │   ├── types.ts       # Data model types
 │   │   ├── index.ts       # Entry point
 │   │   └── indexer.ts     # Standalone DHT indexer process
@@ -218,14 +224,14 @@ backend/
 │
 ├── scripts/
 │   ├── animamesh-connect.sh   # 1-click n2n P2P client (Linux)
-│   ├── proxy-up.sh            # Trigger a proxy runner
-│   ├── proxy-down.sh          # Remove active proxies
-│   ├── proxy-status.sh        # Check proxy health
+│   ├── -up.sh            # Trigger a  runner
+│   ├── -down.sh          # Remove active proxies
+│   ├── -status.sh        # Check  health
 │   └── stun_punch.py          # STUN-based direct NAT traversal
 │
 ├── .github/
 │   └── workflows/
-│       ├── proxy.yml          # GHA runner: trycloudflare/n2n/direct tunnel
+│       ├── .yml          # GHA runner: trycloudflare/n2n/direct tunnel
 │       └── panel.yml          # Dashboard CI/CD
 │
 ├── docs/
@@ -248,17 +254,17 @@ Full request/response schemas: [SPEC-V3 §9 Worker Coordinator Protocol](docs/SP
 |---|---|---|---|
 | `/mesh/n2n-config` | GET | None | Public: community name + supernode (no key) |
 | `/mesh/n2n-join` | POST | Bearer | Full n2n config: community + key + supernode |
-| `/mesh/register` | POST | Bearer | Runner registers signed proxy record |
+| `/mesh/register` | POST | Bearer | Runner registers signed  record |
 | `/mesh/heartbeat` | POST | Bearer | Runner refreshes TTL |
 | `/mesh/deregister` | POST | Bearer | Runner removes its record |
 | `/mesh/status` | GET | None | Active mesh nodes (JSON) |
 | `/mesh/snapshot` | GET | None | Signed snapshot of all records |
 | `/sub/all` | GET | None | Hiddify-compatible subscription (all proxies) |
-| `/sub/{id}` | GET | None | Single proxy subscription |
-| `/proxies` | GET | None | JSON proxy list |
+| `/sub/{id}` | GET | None | Single  subscription |
+| `/proxies` | GET | None | JSON  list |
 | `/register` | POST | Bearer | Legacy v1 registration |
 | `/heartbeat` | POST | Bearer | Legacy v1 heartbeat |
-| `/delete/{id}` | DELETE | Bearer | Remove proxy record |
+| `/delete/{id}` | DELETE | Bearer | Remove  record |
 | `/health` | GET | None | Service health check |
 
 ---
@@ -267,13 +273,13 @@ Full request/response schemas: [SPEC-V3 §9 Worker Coordinator Protocol](docs/SP
 
 | Threat | Mitigation |
 |---|---|
-| **Coordinator compromise** | Coordinator is control-plane only. No proxy traffic flows through it. Signed records (Ed25519) prevent metadata tampering. See [SPEC-V3 §5 Trust Model](docs/SPEC-V3-ANIMAMESH-BACKEND.md) and [SPEC-V2 §6 Threat Model](docs/SPEC-V2-MESH.md). |
+| **Coordinator compromise** | Coordinator is control-plane only. No  traffic flows through it. Signed records (Ed25519) prevent metadata tampering. See [SPEC-V3 §5 Trust Model](docs/SPEC-V3-ANIMAMESH-BACKEND.md) and [SPEC-V2 §6 Threat Model](docs/SPEC-V2-MESH.md). |
 | **n2n key leak** | Anyone with the key can join the overlay — but they still need per-run Hysteria2 passwords to use proxies (from `/sub/all`). Two-factor: network access + app auth. |
 | **Supernode metadata exposure** | The supernode sees your real public IP and the runner's IP (needed for UDP hole-punching). It cannot decrypt payload traffic (AES-encrypted by community key). **If obscuring your home IP from the network broker is a requirement, n2n is not the right tool** — consider Tor or multi-hop instead. |
 | **Supernode MITM** | n2n encrypts peer-to-peer traffic with AES using the community key. The supernode only sees encrypted UDP packets and peer coordinates — never plaintext. |
 | **Lateral movement (L2 risk)** | n2n creates a virtual LAN — any peer on the overlay has L2 adjacency to your machine via `edge0`. A compromised runner or malicious peer could probe your local services. **Mitigation:** treat `edge0` as an untrusted public network. Block unsolicited inbound with `sudo ufw deny in on edge0` or equivalent firewall rules. |
-| **Other n2n peers** | Hysteria2 password is per-run, random. Even other peers on the same overlay can't use your proxy. |
-| **Runner dies** | Ephemeral by design. 45-minute TTL. No persistent state. Trigger a new one with `proxy-up.sh`. |
+| **Other n2n peers** | Hysteria2 password is per-run, random. Even other peers on the same overlay can't use your . |
+| **Runner dies** | Ephemeral by design. 45-minute TTL. No persistent state. Trigger a new one with `-up.sh`. |
 | **Sybil attack** | Network-ID = shared secret. Coordinator auth-gates registration. DHT records signed with Ed25519. See [SPEC-V2 §8 Q7 Defection](docs/SPEC-V2-MESH.md). |
 | **Ghost nodes** | Short TTL, heartbeat every 5 minutes, tombstones on deregister. |
 
@@ -303,10 +309,10 @@ Twice. n2n encrypts the wire between peers (AES with community key). Hysteria2 a
 **Caveat:** the supernode sees your real IP address (it needs this to broker the UDP hole-punch). If hiding your IP from the network broker is a hard requirement, n2n is not the right tool — Tor or multi-hop routing would be needed.
 
 **Why two passwords?**
-n2n key = join the WiFi. Hysteria2 password = use the proxy. Other peers on the same n2n community can ping you but can't proxy through you without the per-run password.
+n2n key = join the WiFi. Hysteria2 password = use the . Other peers on the same n2n community can ping you but can't  through you without the per-run password.
 
 **Is this Tor?**
-No. Tor is a production-grade multi-hop onion network with thousands of nodes and decades of security research. This is a weekend experiment that puts proxy nodes in GitHub Actions and connects to them via n2n. Philosophy-wise? Same neighborhood. Security-wise? Not even close.
+No. Tor is a production-grade multi-hop onion network with thousands of nodes and decades of security research. This is a weekend experiment that puts  nodes in GitHub Actions and connects to them via n2n. Philosophy-wise? Same neighborhood. Security-wise? Not even close.
 
 **Can I use Hiddify instead of the Linux client?**
 If you're using `trycloudflare` tunnel mode, yes — `GET /sub/all` returns standard v2ray subscription links that work with Hiddify on any platform. For n2n mode, you need to join the n2n overlay first (the Linux client does this automatically). Stock Hiddify doesn't speak n2n — n2n requires running the `edge` daemon with root/TUN access, which only the `animamesh-connect.sh` script currently automates on Linux.
@@ -327,17 +333,17 @@ All design documents, kept for research and architectural reference.
 
 | Document | What it covers | When to read it |
 |---|---|---|
-| [`SPEC-V3-ANIMAMESH-BACKEND.md`](docs/SPEC-V3-ANIMAMESH-BACKEND.md) | **V3 implementation spec** — data models (`PublicProxyRecord`, `SignedSnapshot`), Ed25519 signing, Worker V3 mesh endpoints (`/mesh/register`, `/mesh/heartbeat`, `/mesh/snapshot`), DHT rendezvous protocol, subscription generation, runner lifecycle, IPFS mirroring, testing plan | Before modifying `worker/src/index.ts`, `node/src/`, or `proxy.yml` |
+| [`SPEC-V3-ANIMAMESH-BACKEND.md`](docs/SPEC-V3-ANIMAMESH-BACKEND.md) | **V3 implementation spec** — data models (`PublicRecord`, `SignedSnapshot`), Ed25519 signing, Worker V3 mesh endpoints (`/mesh/register`, `/mesh/heartbeat`, `/mesh/snapshot`), DHT rendezvous protocol, subscription generation, runner lifecycle, IPFS mirroring, testing plan | Before modifying `worker/src/index.ts`, `node/src/`, or `.yml` |
 | [`SPEC-V2-MESH.md`](docs/SPEC-V2-MESH.md) | **Original mesh architecture** — DHT topology (Kademlia), lifecycle state machine (SPAWN → DEREGISTER → DIE), 7-AI consillium decisions (bootstrap cascade, multi-hop killed, proactive overspawn, tunnel provider cascade, reputation/PoW stake), threat model, implementation roadmap | For DHT design rationale, consillium voting records (§8), and historical context |
-| [`ANIMAMESH-CLIENT.md`](docs/ANIMAMESH-CLIENT.md) | **Linux client docs** — `animamesh-connect.sh` usage, n2n join flow, proxy discovery, Hysteria2 SOCKS5 setup, troubleshooting, alternative supernodes | Before using or modifying `scripts/animamesh-connect.sh` |
+| [`ANIMAMESH-CLIENT.md`](docs/ANIMAMESH-CLIENT.md) | **Linux client docs** — `animamesh-connect.sh` usage, n2n join flow,  discovery, Hysteria2 SOCKS5 setup, troubleshooting, alternative supernodes | Before using or modifying `scripts/animamesh-connect.sh` |
 
 ### Key sections by topic
 
 | Topic | SPEC-V3 | SPEC-V2 | Client doc |
 |---|---|---|---|
-| Data models & signing | §6 `PublicProxyRecord`, §7 signing model | — | — |
+| Data models & signing | §6 `PublicRecord`, §7 signing model | — | — |
 | Worker mesh API | §9 `/mesh/register`, `/mesh/heartbeat`, `/mesh/status`, `/mesh/snapshot` | — | — |
-| n2n P2P overlay | (implemented, see proxy.yml + worker) | — | Architecture diagram, Step-by-step flow |
+| n2n P2P overlay | (implemented, see .yml + worker) | — | Architecture diagram, Step-by-step flow |
 | DHT rendezvous keys | §8 `/bpb/v2/{net-id}/{protocol}/{peer-id}` | §3.1 DHT Discovery Layer, §8 Q1 bootstrap cascade | — |
 | Subscription generation | §10 Hysteria2 link, VLESS WS link, secret material | — | How proxies are discovered from `/sub/all` |
 | Runner lifecycle | §11 workflow inputs, TTL, respawn | §3.3 Ephemeral Lifecycle Manager | — |
@@ -363,4 +369,4 @@ MIT — Because sharing is caring. 💙
 
 ---
 
-**⚠️ Disclaimer:** This project is a pure science experiment in decentralized ephemeral proxy meshes. It is not affiliated with the original [BPB-Worker-Panel](https://github.com/bia-pain-bache/BPB-Worker-Panel). No production use is intended or supported. Use responsibly, in accordance with GitHub's Terms of Service, and in compliance with your local laws. The authors assume zero liability for what you do with this knowledge.
+**⚠️ Disclaimer:** This project is a pure science experiment in decentralized ephemeral  meshes. It is not affiliated with the original [BPB-Worker-Panel](https://github.com/bia-pain-bache/BPB-Worker-Panel). No production use is intended or supported. Use responsibly, in accordance with GitHub's Terms of Service, and in compliance with your local laws. The authors assume zero liability for what you do with this knowledge.
